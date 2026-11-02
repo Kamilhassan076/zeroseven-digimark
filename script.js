@@ -87,17 +87,94 @@
         /* ==========================================================
            FORM
            ========================================================== */
-        function handleFormSubmit(e) {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-            // TODO: POST to backend / API endpoint
-            console.log('Enquiry submitted:', data);
-            const banner = document.getElementById('formSuccessBanner');
-            banner.classList.remove('hidden');
-            e.target.reset();
-            setTimeout(() => banner.classList.add('hidden'), 6000);
-        }
+
+            async function handleFormSubmit(e) {
+                e.preventDefault();
+
+                const form = e.target;
+                const banner = document.getElementById('formSuccessBanner');
+                const submitButton = form.querySelector('button[type="submit"]');
+
+                const ACCESS_KEY =
+                    '85eac9949d336298cd432d19860634077da27e893a267396109570b6181d998c';
+
+                const originalButtonHTML = submitButton.innerHTML;
+
+                // Hide previous success message
+                banner.classList.add('hidden');
+
+                // Disable button while submitting
+                submitButton.disabled = true;
+                submitButton.innerHTML = `
+                    <span>Sending...</span>
+                    <i class="fa-solid fa-spinner fa-spin text-xs"></i>
+                `;
+
+                try {
+                    // Get form data
+                    const formData = new FormData(form);
+
+                    // Add Silent Forms configuration
+                    formData.set('accessKey', ACCESS_KEY);
+                    formData.set('subject', 'New Enquiry - ZeroSeven DigiMark');
+                    formData.set('from_name', 'ZeroSeven DigiMark Website');
+
+                    // Convert to JSON
+                    const data = Object.fromEntries(formData.entries());
+
+                    // Submit to Silent Forms
+                    const response = await fetch(
+                        'https://silentforms.com/api/submit',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        }
+                    );
+
+                    const result = await response.json();
+
+                    // Check response
+                    if (!response.ok || result.status !== 'success') {
+                        throw new Error(
+                            result.message || 'Failed to submit enquiry'
+                        );
+                    }
+
+                    // Success
+                    console.log('Enquiry submitted:', data);
+
+                    form.reset();
+
+                    banner.classList.remove('hidden');
+
+                    banner.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest'
+                    });
+
+                    // Hide success banner after 6 seconds
+                    setTimeout(() => {
+                        banner.classList.add('hidden');
+                    }, 6000);
+
+                } catch (error) {
+                    console.error('Silent Forms Error:', error);
+
+                    alert(
+                        'Unable to submit your enquiry. Please try again.'
+                    );
+
+                } finally {
+                    // Restore submit button
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalButtonHTML;
+                }
+            }
+
 
         /* ==========================================================
            MODAL
@@ -422,3 +499,5 @@
            FOOTER YEAR
            ========================================================== */
         document.getElementById('copyrightYear').textContent = new Date().getFullYear();
+
+    
